@@ -1,8 +1,7 @@
 import queue
-import os
 import argparse
 import logging
-from multiprocessing import Queue, Process
+from multiprocessing import Queue, Process, cpu_count
 from itertools import count
 
 import pysam
@@ -120,7 +119,7 @@ def run_parallel(args):
         exit()
 
     # 计算可用的核心数
-    processes_num = min(os.cpu_count(), args.P)
+    processes_num = min(cpu_count(), args.P)
     
     # 创建队列，队列长度10倍于进程数，既避免队列过大占用内存，又避免占用读取IO阻塞
     records, results = Queue(10 * processes_num), Queue()
