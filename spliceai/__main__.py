@@ -83,7 +83,7 @@ def process_record(records, results, ref_fasta, annotations, dist_var, mask):
     while True:
         # 尝试从队列获得一个待打分的变异
         try:
-            record = records.get(True, 0.05)
+            record = records.get_nowait()
         except queue.Empty:
             continue
         # 判断队列是否结束
@@ -120,10 +120,10 @@ def run_parallel(args):
 
     # 计算可用的核心数
     processes_num = min(cpu_count(), args.P)
-    
+
     # 创建队列，队列长度10倍于进程数，既避免队列过大占用内存，又避免占用读取IO阻塞
     records, results = Queue(10 * processes_num), Queue()
-    
+
     # 记录已经进入队列，等待运行运行结果的变异
     waiting_records = dict()
     # 生成记录ID
@@ -131,7 +131,7 @@ def run_parallel(args):
     # 运行标记
     input_finished = False
     output_finished = False
-    
+
     # 启动新进程，监听队列
     for i in range(processes_num):
         Process(target=process_record, args=(records, results, args.R, args.A, args.D, args.M)).start()
@@ -151,12 +151,12 @@ def run_parallel(args):
                 input_finished = True
                 records.put('END')
                 break
-        
+
         # 处理获得的结果
         while waiting_records:
             # 尝试从队列获得结果
             try:
-                result = results.get(True, 0.05)
+                result = results.get_nowait()
             except queue.Empty:
                 break
             # 打分结果和变异对应
@@ -168,7 +168,7 @@ def run_parallel(args):
         else:
             # 标记队列结束
             output_finished = True
-        
+
         # 全部处理完成
         if output_finished:
             break
@@ -185,7 +185,7 @@ def main():
         logging.error('Usage: spliceai [-h] [-I [input]] [-O [output]] -R reference -A annotation '
                       '[-D [distance]] [-M [mask]]')
         exit()
-    
+
     # 根据参数的核心数来选择串行或者并行运行
     run_serial(args) if args.P == 1 else run_parallel(args)
 
